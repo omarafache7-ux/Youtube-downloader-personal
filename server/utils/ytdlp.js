@@ -15,6 +15,22 @@ if (!fs.existsSync(DOWNLOAD_DIR)) {
   fs.mkdirSync(DOWNLOAD_DIR, { recursive: true });
 }
 
+// YouTube increasingly challenges requests that don't look like they come
+// from a real signed-in browser ("Sign in to confirm you're not a bot").
+// Passing cookies from an actual logged-in browser session (or a cookies
+// file) gets past this. Set COOKIES_FROM_BROWSER (e.g. "chrome", "firefox",
+// "edge") or COOKIES_FILE in your .env — see the README troubleshooting
+// section. Treat whichever you use as sensitive: it's tied to your account.
+function authOptions() {
+  if (process.env.COOKIES_FROM_BROWSER) {
+    return { cookiesFromBrowser: process.env.COOKIES_FROM_BROWSER };
+  }
+  if (process.env.COOKIES_FILE) {
+    return { cookies: process.env.COOKIES_FILE };
+  }
+  return {};
+}
+
 /**
  * Fetch metadata for a URL without downloading anything.
  */
@@ -22,10 +38,10 @@ async function fetchInfo(url) {
   const info = await youtubedl(url, {
     dumpSingleJson: true,
     noWarnings: true,
-    noCallHome: true,
     noCheckCertificate: true,
     preferFreeFormats: true,
     youtubeSkipDashManifest: true,
+    ...authOptions(),
   });
   return info;
 }
@@ -43,9 +59,9 @@ async function downloadMedia(url, format, jobId) {
     output: outputTemplate,
     noCheckCertificate: true,
     noWarnings: true,
-    noCallHome: true,
     preferFreeFormats: true,
     restrictFilenames: true,
+    ...authOptions(),
   };
 
   const options =

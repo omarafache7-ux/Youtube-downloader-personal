@@ -29,7 +29,7 @@ export default function HistoryList({ items, onRemoved }) {
   }
 
   if (items.length === 0) {
-    return <p className="empty-state">No downloads yet — paste a link above to get started.</p>;
+    return <p className="empty-state">No downloads yet paste a link above to get started.</p>;
   }
 
   return (

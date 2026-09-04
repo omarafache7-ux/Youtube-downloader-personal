@@ -53,8 +53,7 @@ export default function App() {
       <header>
         <h1>Personal Media Downloader</h1>
         <p className="subtitle">
-          For your own use, on content you have the rights to save. Runs locally — nothing here
-          is a public service.
+          For your own use, on content you have the rights to save.
         </p>
       </header>
 
