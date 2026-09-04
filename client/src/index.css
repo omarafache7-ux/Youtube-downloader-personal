@@ -9,7 +9,7 @@
 
 body {
   margin: 0;
-  background: #0f1115;
+  background: #0d1b39;
   color: #e8e8ea;
 }
 
@@ -181,4 +181,12 @@ header h1 {
 .btn-danger {
   color: #ff8080;
   border-color: #4a2a2a;
+}
+.quality-select {
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid #333844;
+  background: #0f1115;
+  color: inherit;
+  font-size: 0.85rem;
 }

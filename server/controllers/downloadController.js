@@ -1,19 +1,25 @@
 const fs = require('fs');
 const path = require('path');
 const Download = require('../models/Download');
-const { fetchInfo, downloadMedia, getDownloadDir } = require('../utils/ytdlp');
+const {
+  fetchInfo,
+  downloadMedia,
+  getDownloadDir,
+  VIDEO_QUALITIES,
+  AUDIO_QUALITIES,
+} = require('../utils/ytdlp');
 
 /**
  * Kicks off the actual download in the background and updates the DB
  * record as it progresses. Not awaited by the route handler so the
  * client gets an immediate response and can poll for status.
  */
-async function processDownload(recordId, url, format) {
+async function processDownload(recordId, url, format, quality) {
   const jobId = recordId.toString();
   try {
     await Download.findByIdAndUpdate(recordId, { status: 'processing' });
 
-    const filename = await downloadMedia(url, format, jobId);
+    const filename = await downloadMedia(url, format, quality, jobId);
     const filePath = path.join(getDownloadDir(), filename);
     const stats = fs.statSync(filePath);
 
@@ -34,13 +40,19 @@ async function processDownload(recordId, url, format) {
 // POST /api/downloads
 exports.createDownload = async (req, res) => {
   try {
-    const { url, format } = req.body;
+    const { url, format, quality = 'best' } = req.body;
 
     if (!url || typeof url !== 'string') {
       return res.status(400).json({ error: 'A valid "url" is required.' });
     }
     if (!['mp3', 'mp4'].includes(format)) {
       return res.status(400).json({ error: '"format" must be "mp3" or "mp4".' });
+    }
+    const allowedQualities = format === 'mp3' ? AUDIO_QUALITIES : VIDEO_QUALITIES;
+    if (!allowedQualities.includes(quality)) {
+      return res.status(400).json({
+        error: `"quality" must be one of: ${allowedQualities.join(', ')}`,
+      });
     }
 
     let info = {};
@@ -56,6 +68,7 @@ exports.createDownload = async (req, res) => {
     const record = await Download.create({
       sourceUrl: url,
       format,
+      quality,
       title: info.title || '',
       thumbnail: info.thumbnail || '',
       durationSeconds: info.duration || 0,
@@ -63,7 +76,7 @@ exports.createDownload = async (req, res) => {
     });
 
     // Fire and forget — status is tracked in Mongo and polled by the client.
-    processDownload(record._id, url, format);
+    processDownload(record._id, url, format, quality);
 
     res.status(202).json(record);
   } catch (err) {

@@ -31,6 +31,37 @@ function authOptions() {
   return {};
 }
 
+// Allowed quality presets — validated here too (not just in the controller)
+// since this is the layer that actually builds the yt-dlp command.
+const VIDEO_QUALITIES = ['best', '2160', '1440', '1080', '720', '480', '360'];
+const AUDIO_QUALITIES = ['best', '320', '256', '192', '128'];
+
+/**
+ * Build the yt-dlp -f/--format selector for a video download.
+ * "best" (or anything unrecognized) means no height cap.
+ */
+function videoFormatSelector(quality) {
+  const height = VIDEO_QUALITIES.includes(quality) && quality !== 'best' ? quality : null;
+  if (!height) {
+    return 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best';
+  }
+  return (
+    `bestvideo[ext=mp4][height<=${height}]+bestaudio[ext=m4a]` +
+    `/best[ext=mp4][height<=${height}]/best[height<=${height}]/best`
+  );
+}
+
+/**
+ * Build the yt-dlp --audio-quality value for an MP3 download.
+ * "0" = best VBR; a specific bitrate like "192K" pins that bitrate.
+ */
+function audioQualityValue(quality) {
+  if (!AUDIO_QUALITIES.includes(quality) || quality === 'best') {
+    return 0;
+  }
+  return `${quality}K`;
+}
+
 /**
  * Fetch metadata for a URL without downloading anything.
  */
@@ -52,7 +83,7 @@ async function fetchInfo(url) {
  *
  * jobId is used as a unique suffix so concurrent downloads never collide.
  */
-async function downloadMedia(url, format, jobId) {
+async function downloadMedia(url, format, quality, jobId) {
   const outputTemplate = path.join(DOWNLOAD_DIR, `%(title).80s-${jobId}.%(ext)s`);
 
   const baseOptions = {
@@ -70,11 +101,11 @@ async function downloadMedia(url, format, jobId) {
           ...baseOptions,
           extractAudio: true,
           audioFormat: 'mp3',
-          audioQuality: 0, // best
+          audioQuality: audioQualityValue(quality),
         }
       : {
           ...baseOptions,
-          format: 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+          format: videoFormatSelector(quality),
           mergeOutputFormat: 'mp4',
         };
 
@@ -95,4 +126,10 @@ function getDownloadDir() {
   return DOWNLOAD_DIR;
 }
 
-module.exports = { fetchInfo, downloadMedia, getDownloadDir };
+module.exports = {
+  fetchInfo,
+  downloadMedia,
+  getDownloadDir,
+  VIDEO_QUALITIES,
+  AUDIO_QUALITIES,
+};

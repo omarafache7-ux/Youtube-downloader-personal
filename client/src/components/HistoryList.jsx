@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { deleteDownload, fileUrl } from '../api/api';
 
 const STATUS_LABEL = {
@@ -22,14 +23,68 @@ function formatSize(bytes) {
   return `${mb.toFixed(1)} MB`;
 }
 
+function formatQuality(item) {
+  if (!item.quality || item.quality === 'best') return '';
+  return item.format === 'mp3' ? `${item.quality} kbps` : `${item.quality}p`;
+}
+
+// Chromium browsers (Chrome, Edge, Brave, Opera) support a native "Save As"
+// dialog via the File System Access API. Firefox/Safari don't, so we fall
+// back to a plain navigation, which triggers the browser's normal download
+// behavior (respecting its own "always ask where to save" setting).
+const supportsSavePicker = typeof window !== 'undefined' && 'showSaveFilePicker' in window;
+
 export default function HistoryList({ items, onRemoved }) {
+  const [savingId, setSavingId] = useState(null);
+
   async function handleDelete(id) {
     await deleteDownload(id);
     onRemoved(id);
   }
 
+  async function handleSave(item) {
+    const url = fileUrl(item._id);
+    const suggestedName = item.filename || `${item.title || 'download'}.${item.format}`;
+
+    if (!supportsSavePicker) {
+      // No native picker available — let the browser handle it normally.
+      window.location.href = url;
+      return;
+    }
+
+    setSavingId(item._id);
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Server responded ${response.status}`);
+      const blob = await response.blob();
+
+      const handle = await window.showSaveFilePicker({
+        suggestedName,
+        types: [
+          {
+            description: item.format.toUpperCase(),
+            accept: {
+              [item.format === 'mp3' ? 'audio/mpeg' : 'video/mp4']: [`.${item.format}`],
+            },
+          },
+        ],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(blob);
+      await writable.close();
+    } catch (err) {
+      // AbortError just means the user closed the save dialog — not a failure.
+      if (err.name !== 'AbortError') {
+        console.error('Save failed:', err);
+        alert(`Couldn't save the file: ${err.message}`);
+      }
+    } finally {
+      setSavingId(null);
+    }
+  }
+
   if (items.length === 0) {
-    return <p className="empty-state">No downloads yet paste a link above to get started.</p>;
+    return <p className="empty-state">No downloads yet — paste a link above to get started.</p>;
   }
 
   return (
@@ -46,6 +101,7 @@ export default function HistoryList({ items, onRemoved }) {
             <p className="title">{item.title || item.sourceUrl}</p>
             <p className="meta">
               {item.format.toUpperCase()}
+              {formatQuality(item) ? ` · ${formatQuality(item)}` : ''}
               {item.durationSeconds ? ` · ${formatDuration(item.durationSeconds)}` : ''}
               {item.fileSizeBytes ? ` · ${formatSize(item.fileSizeBytes)}` : ''}
             </p>
@@ -57,9 +113,13 @@ export default function HistoryList({ items, onRemoved }) {
 
           <div className="history-actions">
             {item.status === 'completed' && (
-              <a className="btn" href={fileUrl(item._id)}>
-                Save file
-              </a>
+              <button
+                className="btn"
+                onClick={() => handleSave(item)}
+                disabled={savingId === item._id}
+              >
+                {savingId === item._id ? 'Saving…' : 'Save file'}
+              </button>
             )}
             <button className="btn btn-danger" onClick={() => handleDelete(item._id)}>
               Remove

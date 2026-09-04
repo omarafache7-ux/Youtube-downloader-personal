@@ -2,8 +2,8 @@ import axios from 'axios';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-export async function createDownload(url, format) {
-  const { data } = await axios.post(`${API_BASE}/downloads`, { url, format });
+export async function createDownload(url, format, quality = 'best') {
+  const { data } = await axios.post(`${API_BASE}/downloads`, { url, format, quality });
   return data;
 }
 
