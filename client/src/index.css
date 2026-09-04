@@ -1,0 +1,184 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #0f1115;
+  color: #e8e8ea;
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+header h1 {
+  font-size: 1.6rem;
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  color: #9a9aa2;
+  font-size: 0.9rem;
+  margin-top: 0;
+  margin-bottom: 2rem;
+}
+
+.download-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  background: #181b22;
+  border: 1px solid #262a33;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.download-form input[type='text'] {
+  flex: 1 1 260px;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid #333844;
+  background: #0f1115;
+  color: inherit;
+  font-size: 0.95rem;
+}
+
+.format-toggle {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.9rem;
+  color: #c7c7cd;
+}
+
+.format-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+}
+
+.download-form button {
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  border: none;
+  background: #5b7cfa;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.download-form button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.error-text {
+  width: 100%;
+  color: #ff8080;
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.history-section h2 {
+  font-size: 1.1rem;
+  color: #c7c7cd;
+  margin-bottom: 1rem;
+}
+
+.empty-state {
+  color: #7c7c85;
+  font-size: 0.9rem;
+}
+
+.history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  background: #181b22;
+  border: 1px solid #262a33;
+  border-radius: 10px;
+  padding: 0.7rem;
+}
+
+.thumb {
+  width: 64px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: #262a33;
+}
+
+.history-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: #8f8f97;
+}
+
+.status {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: #6f9bff;
+}
+
+.status-failed .status {
+  color: #ff8080;
+}
+
+.status-completed .status {
+  color: #6fd396;
+}
+
+.history-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.btn {
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid #333844;
+  background: #0f1115;
+  color: inherit;
+  font-size: 0.8rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn-danger {
+  color: #ff8080;
+  border-color: #4a2a2a;
+}

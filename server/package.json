@@ -1,0 +1,21 @@
+{
+  "name": "yt-downloader-backend",
+  "version": "1.0.0",
+  "description": "Personal-use MERN backend for downloading video (MP4) or audio (MP3) from links you have the rights to save, using yt-dlp under the hood.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.5.1",
+    "youtube-dl-exec": "^3.0.10"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
