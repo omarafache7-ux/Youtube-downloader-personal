@@ -1,12 +1,34 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { deleteDownload, fileUrl } from '../api/api';
 
 const STATUS_LABEL = {
   pending: 'Queued…',
-  processing: 'Downloading…',
+  processing: 'Working…',
   completed: 'Ready',
   failed: 'Failed',
 };
+
+const ACTIVE = new Set(['pending', 'processing']);
+
+/** Ticks once a second, but only while something is actually running. */
+function useElapsedClock(hasActive) {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    if (!hasActive) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [hasActive]);
+
+  return now;
+}
+
+function elapsedSince(startedAt, now) {
+  const seconds = Math.max(0, Math.floor((now - new Date(startedAt).getTime()) / 1000));
+  const m = Math.floor(seconds / 60);
+  const s = (seconds % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
 
 function formatDuration(seconds) {
   if (!seconds) return '';
@@ -36,6 +58,8 @@ const supportsSavePicker = typeof window !== 'undefined' && 'showSaveFilePicker'
 
 export default function HistoryList({ items, onRemoved }) {
   const [savingId, setSavingId] = useState(null);
+  const hasActive = items.some((i) => ACTIVE.has(i.status));
+  const now = useElapsedClock(hasActive);
 
   async function handleDelete(id) {
     await deleteDownload(id);
@@ -106,9 +130,17 @@ export default function HistoryList({ items, onRemoved }) {
               {item.fileSizeBytes ? ` · ${formatSize(item.fileSizeBytes)}` : ''}
             </p>
             <p className="status">
+              {ACTIVE.has(item.status) && <span className="spinner" aria-hidden="true" />}
               {STATUS_LABEL[item.status] || item.status}
+              {ACTIVE.has(item.status) ? ` ${elapsedSince(item.createdAt, now)}` : ''}
               {item.status === 'failed' && item.error ? `: ${item.error}` : ''}
             </p>
+            {ACTIVE.has(item.status) && (
+              <p className="hint">
+                yt-dlp can take a minute or two on the first call — this counter proves it's
+                still running.
+              </p>
+            )}
           </div>
 
           <div className="history-actions">

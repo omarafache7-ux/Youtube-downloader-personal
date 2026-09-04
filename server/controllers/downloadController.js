@@ -10,14 +10,30 @@ const {
 } = require('../utils/ytdlp');
 
 /**
- * Kicks off the actual download in the background and updates the DB
- * record as it progresses. Not awaited by the route handler so the
- * client gets an immediate response and can poll for status.
+ * Runs the whole job in the background — metadata lookup first, then the
+ * actual download — updating the DB record at each step. Deliberately NOT
+ * awaited by the route handler: yt-dlp can take a minute or more (cookie
+ * decryption, throttling), and blocking the HTTP response on that is what
+ * made the UI look frozen on "Starting…".
  */
 async function processDownload(recordId, url, format, quality) {
   const jobId = recordId.toString();
   try {
     await Download.findByIdAndUpdate(recordId, { status: 'processing' });
+
+    // Metadata is a nice-to-have (title/thumbnail/duration for the UI), not
+    // a prerequisite. If it fails or times out we keep going — the download
+    // itself is the real test, and its error is the more useful one.
+    try {
+      const info = await fetchInfo(url);
+      await Download.findByIdAndUpdate(recordId, {
+        title: info.title || '',
+        thumbnail: info.thumbnail || '',
+        durationSeconds: info.duration || 0,
+      });
+    } catch (err) {
+      console.warn(`Job ${jobId}: metadata lookup failed, continuing anyway:`, err.message);
+    }
 
     const filename = await downloadMedia(url, format, quality, jobId);
     const filePath = path.join(getDownloadDir(), filename);
@@ -55,28 +71,23 @@ exports.createDownload = async (req, res) => {
       });
     }
 
-    let info = {};
-    try {
-      info = await fetchInfo(url);
-    } catch (err) {
-      return res.status(422).json({
-        error: 'Could not read info for that URL. Check the link and that yt-dlp is installed.',
-        details: err.message,
-      });
-    }
-
+    // Create the record and respond straight away (milliseconds). Title and
+    // thumbnail get filled in by the background job once yt-dlp reports them,
+    // so the item shows up in the UI immediately instead of the user staring
+    // at a stuck button while yt-dlp works.
     const record = await Download.create({
       sourceUrl: url,
       format,
       quality,
-      title: info.title || '',
-      thumbnail: info.thumbnail || '',
-      durationSeconds: info.duration || 0,
       status: 'pending',
     });
 
     // Fire and forget — status is tracked in Mongo and polled by the client.
-    processDownload(record._id, url, format, quality);
+    // The .catch() guard matters: an unhandled rejection here would take the
+    // whole Node process down.
+    processDownload(record._id, url, format, quality).catch((err) =>
+      console.error('processDownload crashed:', err)
+    );
 
     res.status(202).json(record);
   } catch (err) {

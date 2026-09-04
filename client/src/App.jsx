@@ -31,10 +31,19 @@ export default function App() {
     if (active.length === 0) return;
 
     pollTimer.current = setTimeout(async () => {
-      const updates = await Promise.all(active.map((i) => getDownload(i._id)));
-      setItems((prev) =>
-        prev.map((item) => updates.find((u) => u._id === item._id) || item)
-      );
+      try {
+        const updates = await Promise.all(active.map((i) => getDownload(i._id)));
+        setItems((prev) =>
+          prev.map((item) => updates.find((u) => u._id === item._id) || item)
+        );
+      } catch (err) {
+        // A single failed poll (backend restarting, brief network blip) must
+        // not kill the loop: without this, the effect never re-runs and the
+        // UI silently freezes on "Queued…" forever. Nudge state so the
+        // effect fires again and we retry on the next tick.
+        console.error('Status poll failed, will retry:', err);
+        setItems((prev) => [...prev]);
+      }
     }, 2000);
 
     return () => clearTimeout(pollTimer.current);
@@ -53,7 +62,7 @@ export default function App() {
       <header>
         <h1>Personal Media Downloader</h1>
         <p className="subtitle">
-          For your own use, on content you have the rights to save.
+          For your own use, on content you have the rights to save. 
         </p>
       </header>
 

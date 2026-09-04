@@ -9,7 +9,7 @@
 
 body {
   margin: 0;
-  background: #0d1b39;
+  background: #0f1115;
   color: #e8e8ea;
 }
 
@@ -51,6 +51,15 @@ header h1 {
   background: #0f1115;
   color: inherit;
   font-size: 0.95rem;
+}
+
+.quality-select {
+  padding: 0.5rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid #333844;
+  background: #0f1115;
+  color: inherit;
+  font-size: 0.85rem;
 }
 
 .format-toggle {
@@ -153,6 +162,30 @@ header h1 {
   color: #6f9bff;
 }
 
+.hint {
+  margin: 0.2rem 0 0;
+  font-size: 0.72rem;
+  color: #6f6f78;
+}
+
+.spinner {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 0.45rem;
+  border: 2px solid #333844;
+  border-radius: 50%;
+  border-top-color: #6f9bff;
+  animation: spin 0.8s linear infinite;
+  vertical-align: -1px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .status-failed .status {
   color: #ff8080;
 }
@@ -181,12 +214,4 @@ header h1 {
 .btn-danger {
   color: #ff8080;
   border-color: #4a2a2a;
-}
-.quality-select {
-  padding: 0.5rem 0.7rem;
-  border-radius: 8px;
-  border: 1px solid #333844;
-  background: #0f1115;
-  color: inherit;
-  font-size: 0.85rem;
 }
