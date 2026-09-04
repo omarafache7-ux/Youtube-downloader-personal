@@ -31,6 +31,24 @@ function authOptions() {
   return {};
 }
 
+// Without a timeout, a hung yt-dlp process (bad network, YouTube throttling,
+// or — commonly — COOKIES_FROM_BROWSER pointed at a browser that's still
+// open and locking its cookie database) leaves the request hanging forever,
+// which shows up in the UI as the submit button stuck on "Starting…". These
+// give up and surface a real error instead. Override via .env if needed.
+const INFO_TIMEOUT_MS = Number(process.env.INFO_TIMEOUT_MS) || 30_000; // 30s — just metadata
+const DOWNLOAD_TIMEOUT_MS = Number(process.env.DOWNLOAD_TIMEOUT_MS) || 20 * 60_000; // 20min
+
+function friendlyTimeoutError(err, seconds) {
+  if (err?.timedOut || /timed out/i.test(err?.message || '')) {
+    const cookieHint = process.env.COOKIES_FROM_BROWSER
+      ? ` If COOKIES_FROM_BROWSER=${process.env.COOKIES_FROM_BROWSER} is set, make sure that browser is fully closed (yt-dlp needs to read its cookie file, and a running browser can lock it and hang).`
+      : '';
+    return new Error(`yt-dlp did not respond within ${seconds}s.${cookieHint}`);
+  }
+  return err;
+}
+
 // Allowed quality presets — validated here too (not just in the controller)
 // since this is the layer that actually builds the yt-dlp command.
 const VIDEO_QUALITIES = ['best', '2160', '1440', '1080', '720', '480', '360'];
@@ -66,15 +84,23 @@ function audioQualityValue(quality) {
  * Fetch metadata for a URL without downloading anything.
  */
 async function fetchInfo(url) {
-  const info = await youtubedl(url, {
-    dumpSingleJson: true,
-    noWarnings: true,
-    noCheckCertificate: true,
-    preferFreeFormats: true,
-    youtubeSkipDashManifest: true,
-    ...authOptions(),
-  });
-  return info;
+  try {
+    const info = await youtubedl(
+      url,
+      {
+        dumpSingleJson: true,
+        noWarnings: true,
+        noCheckCertificate: true,
+        preferFreeFormats: true,
+        youtubeSkipDashManifest: true,
+        ...authOptions(),
+      },
+      { timeout: INFO_TIMEOUT_MS }
+    );
+    return info;
+  } catch (err) {
+    throw friendlyTimeoutError(err, INFO_TIMEOUT_MS / 1000);
+  }
 }
 
 /**
@@ -109,7 +135,11 @@ async function downloadMedia(url, format, quality, jobId) {
           mergeOutputFormat: 'mp4',
         };
 
-  await youtubedl(url, options);
+  try {
+    await youtubedl(url, options, { timeout: DOWNLOAD_TIMEOUT_MS });
+  } catch (err) {
+    throw friendlyTimeoutError(err, DOWNLOAD_TIMEOUT_MS / 1000);
+  }
 
   const match = fs
     .readdirSync(DOWNLOAD_DIR)
